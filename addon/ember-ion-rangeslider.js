@@ -1,14 +1,62 @@
 import Ember from 'ember';
-import IonSlider from './mixins/ion-slider';
 
 var get = Ember.get;
 var merge = Ember.merge;
+var ionProperties = {
+  type               : 'single',
+  values             : [],
+  min                : 10,
+  max                : 100,
+  step               : 1,
+  min_interval       : null,
+  max_interval       : null,
+  drag_interval      : false,
 
-export default Ember.Component.extend(IonSlider, {
+  from_fixed         : false,
+  from_min           : 10,
+  from_max           : 100,
+  from_shadow        : false,
+  to_fixed           : false,
+  to_min             : 10,
+  to_max             : 100,
+  to_shadow          : false,
+
+  prettify_enabled   : true,
+  prettify_separator : ' ',
+  prettify           : null,
+
+  force_edges        : false,
+  keyboard           : false,
+  keyboard_step      : 5,
+
+  grid               : false,
+  grid_margin        : true,
+  grid_num           : 4,
+  grid_snap          : false,
+  hide_min_max       : false,
+  hide_from_to       : false,
+
+  prefix             : '',
+  postfix            : '',
+  max_postfix        : '',
+  decorate_both      : true,
+  values_separator   : ' - ',
+  disabled           : false
+};
+
+export default Ember.Component.extend({
   tagName: 'input',
   classNames: ['ember-ion-rangeslider'],
   type: 'single', //## explicit, waiting for this.attr.type
   _slider: null,
+
+  ionReadOnlyOptions: computed(function(){
+    var ionOptions = {};
+    for (var pName in ionProperties){
+      ionOptions[pName] = this.getWithDefault(pName, ionProperties[pName]);
+    }
+    return ionOptions;
+  }).readOnly(),
 
   sliderOptions: Ember.computed(function(){
     //## Update trigger: change|finish
@@ -74,7 +122,22 @@ export default Ember.Component.extend(IonSlider, {
     var args = {'to': changes.to, 'from': changes.from };
     Ember.run.debounce(this, this.setProperties, args, throttleTimeout);
   },
+
   _sliderDidFinish: function(changes){
     this.setProperties({'to': changes.to, 'from': changes.from});
   },
+
+  _startObserving: function(){
+    var options = this.get('ionReadOnlyOptions');
+    for (var optName in options){
+      Ember.addObserver(this, optName, this, '_readOnlyPropertiesChanged');
+    }
+  }.on('didInsertElement'),
+
+  _stopObserving: function() {
+    var options = this.get('ionReadOnlyOptions');
+    for (var optName in options){
+      Ember.removeObserver(this, optName, this, '_readOnlyPropertiesChanged');
+    }
+  }.on('willDestroyElement')
 });
