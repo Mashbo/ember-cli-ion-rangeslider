@@ -2,6 +2,7 @@ import Ember from 'ember';
 
 var get = Ember.get;
 var merge = Ember.merge;
+
 var ionProperties = {
   type               : 'single',
   values             : [],
@@ -50,7 +51,7 @@ export default Ember.Component.extend({
   type: 'single', //## explicit, waiting for this.attr.type
   _slider: null,
 
-  ionReadOnlyOptions: computed(function(){
+  ionReadOnlyOptions: Ember.computed(function(){
     var ionOptions = {};
     for (var pName in ionProperties){
       ionOptions[pName] = this.getWithDefault(pName, ionProperties[pName]);
@@ -87,17 +88,24 @@ export default Ember.Component.extend({
   }).readOnly(),
 
   //## Setup/destroy
-  setupRangeSlider: function(){
+  didInsertElement() {
     var options = get(this, 'sliderOptions');
     this.$().ionRangeSlider(options);
     this._slider = this.$().data('ionRangeSlider');
 
-  }.on('didInsertElement'),
+    options = this.get('ionReadOnlyOptions');
+    for (var optName in options){
+      Ember.addObserver(this, optName, this, '_readOnlyPropertiesChanged');
+    }
+  },
 
-  destroyRangeSlider: function(){
+  willDestroyElement() {
     this._slider.destroy();
-
-  }.on('willDestroyElement'),
+    var options = this.get('ionReadOnlyOptions');
+    for (var optName in options){
+      Ember.removeObserver(this, optName, this, '_readOnlyPropertiesChanged');
+    }
+  },
 
   //## Bound values observers
   _onToFromPropertiesChanged: Ember.observer(
@@ -125,19 +133,5 @@ export default Ember.Component.extend({
 
   _sliderDidFinish: function(changes){
     this.setProperties({'to': changes.to, 'from': changes.from});
-  },
-
-  _startObserving: function(){
-    var options = this.get('ionReadOnlyOptions');
-    for (var optName in options){
-      Ember.addObserver(this, optName, this, '_readOnlyPropertiesChanged');
-    }
-  }.on('didInsertElement'),
-
-  _stopObserving: function() {
-    var options = this.get('ionReadOnlyOptions');
-    for (var optName in options){
-      Ember.removeObserver(this, optName, this, '_readOnlyPropertiesChanged');
-    }
-  }.on('willDestroyElement')
+  }
 });
